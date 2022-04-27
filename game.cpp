@@ -9,6 +9,7 @@
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 
+#include "Graphics.h"
 #include "Matrix.h"
 #include "Point.h"
 #include "Polygon.h"
@@ -20,6 +21,9 @@ using namespace std;
 const Vector X_VEL(500,0,0);
 const Vector Y_VEL(0,500,0);
 const Vector Z_VEL(0,0,500);
+
+// z-coordinate of the center of projection
+const int R = -800; 
 
 const int FPS = 100;
 
@@ -61,7 +65,6 @@ bool isInView(Polygon poly) {
 	}
 	return true;
 }
-
 
 int main() {
   // Open the server connection
@@ -155,7 +158,6 @@ int main() {
   XFree(win_size_hints);
 
   // Initialize window size variables
-
   XWindowAttributes winAttributes;
   XGetWindowAttributes(display, window, &winAttributes);
   windowWidth = winAttributes.width;
@@ -367,6 +369,11 @@ int main() {
       }
     }
 
+    // Update window size variables
+    XGetWindowAttributes(display, window, &winAttributes);
+    windowWidth = winAttributes.width;
+    windowHeight = winAttributes.height;
+
     // Update game state
 
     // Translate each polygons
@@ -479,18 +486,22 @@ int main() {
 
     // Project the polygons onto the viewing plane
     for (int i = 0; i < numPolygons; ++i) {
+
+      // Project onto x-y plane
+      // - using the new method of projection
+      Polygon projectedPolygon = Graphics::project(transformedPolygons[i], R);
+      // - using the old method of projection
+      //Polygon projectedPolygon = Graphics::old_project(transformedPolygons[i], windowWidth, windowHeight);
+
 			int numVertices = transformedPolygons[i].vertices.size();
 			XPoint xPoints[numVertices];
-			for (int j = 0; j < numVertices; ++j) {
-				xPoints[j].x = transformedPolygons[i].vertices[j].x;
-				xPoints[j].y = transformedPolygons[i].vertices[j].y;
 
-				// If the point is in view, scale it
-				//if (isInView(transformedPolygons[i].vertices[j])) {
-					// Scale the point according to how far away from the viewing plane it is (z coordinate)
-					xPoints[j].x = transformedPolygons[i].vertices[j].x * windowWidth / (windowWidth + 2 * transformedPolygons[i].vertices[j].z);
-					xPoints[j].y = transformedPolygons[i].vertices[j].y * windowHeight / (windowHeight + 2 * transformedPolygons[i].vertices[j].z);
-				//}
+      // Set up the XPoints array (for drawing on screen)
+			for (int j = 0; j < numVertices; ++j) {
+
+        // Copy over the coordinates
+				xPoints[j].x = projectedPolygon.vertices[j].x;
+				xPoints[j].y = projectedPolygon.vertices[j].y;
 
 				// Translate from game coordinates to screen coordinates (for XFillPolygon)
 				xPoints[j].x = xPoints[j].x + windowWidth / 2;
