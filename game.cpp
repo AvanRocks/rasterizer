@@ -52,20 +52,6 @@ int mouseX = -1, mouseY = -1;
 
 int windowWidth, windowHeight;
 
-bool isInView(Point p) {
-  return (p.z >= 0 && abs(p.x) <= windowWidth + 2 * p.z
-          && abs(p.y) <= windowHeight + 2 * p.z);
-}
-
-// true if all four of the polygon's points are in view
-bool isInView(Polygon poly) {
-	for (int i = 0; i < poly.vertices.size(); ++i) {
-		if (!isInView(poly.vertices[i]))
-			return false;
-	}
-	return true;
-}
-
 int main() {
   // Open the server connection
   Display* display = XOpenDisplay(NULL);
@@ -422,7 +408,7 @@ int main() {
 
 			// If one or more of the vertices are out of view,
 			// clip the polygon to the viewing frustum 
-			if (!isInView(currPoly)) {
+			if (!Graphics::isInView(currPoly, windowWidth, windowHeight, R)) {
 
 				// All vertices of newPoly will be in the viewing frustum
 				Polygon newPoly;
@@ -435,14 +421,17 @@ int main() {
 					Point currPoint = transformedPolygons[i].vertices[j];
 					Point nextPoint = transformedPolygons[i].vertices[(j+1) % numVertices];
 
-					if (isInView(currPoint)) {
+          bool currPointInView = Graphics::isInView(currPoint, windowWidth, windowHeight, R);
+          bool nextPointInView = Graphics::isInView(nextPoint, windowWidth, windowHeight, R);
+
+					if (currPointInView) {
 						newPoly.vertices.push_back(currPoint);
 					}
 
 					// If the points lie across the border of the viewing frustum
-					if (isInView(currPoint) ^ isInView(nextPoint)) {
+					if (currPointInView ^ nextPointInView) {
 						Point inView, outOfView;
-						if (isInView(currPoint)) {
+						if (currPointInView) {
 							inView = currPoint;
 							outOfView = nextPoint;
 						} else {
@@ -450,23 +439,38 @@ int main() {
 							outOfView = currPoint;
 						}
 
-						// Locate the intersection of the line connecting
-						// inView and outView with the boundary of the
-						// viewing frustum
-						while (true) {
-							Point midpoint = Point::getMidpoint(inView, outOfView);
-							if (midpoint == inView || midpoint == outOfView)
-								break;
-							else if (isInView(midpoint))
-								inView = midpoint;
-							else
-								outOfView = midpoint;
-						}
-						Point intersectionPoint = inView;
+            Point intersectionPoint = Graphics::clip(inView, outOfView, windowWidth, windowHeight, R);
 
 						// Add the intersectionPoint (which is in view) to the new polygon
 						newPoly.vertices.push_back(intersectionPoint);
-					}
+
+					} else if (!currPointInView && !nextPointInView) {
+            // If both points are out of view, still check to see if
+            // the edge connecting them intersects the viewing frustum
+
+            Point inView = currPoint;
+            Point outOfView = nextPoint;
+
+            Point possibleIntersection = Graphics::clip(inView, outOfView, windowWidth, windowHeight, R);
+
+            // Binary searched point is different from inView only if the edge
+            // passes through the viewing frustum 
+            if (possibleIntersection != inView) {
+              // The edge intersects the viewing frustum
+
+              // Add it to the clipped polygon
+						  newPoly.vertices.push_back(possibleIntersection);
+
+              // Find the second intersection point
+              Point secondIntersection = Graphics::clip(possibleIntersection, inView, windowWidth, windowHeight, R);
+						  newPoly.vertices.push_back(secondIntersection);
+            }
+
+            // TODO: fix the algorithm that finds intersection points. The current one
+            // misses some intersection points and this causes visual bugs.
+            
+          }
+
 				}
 
 				// Replace current polygon with clipped polygon
