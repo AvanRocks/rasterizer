@@ -452,13 +452,6 @@ int main() {
 			}
     }
 
-		for (int i = 0; i < numPolygons; ++i) {
-			for (int j = 0; j < transformedPolygons[i].vertices.size(); ++j) {
-				//Point p = transformedPolygons[i].vertices[j];
-				//printf("Polygon %d, Vertex %d: (%d,%d,%d)\n", i, j, p.x, p.y, p.z);
-			}
-		}
-		
     // Clear the window
     XClearWindow(display, window);
 
