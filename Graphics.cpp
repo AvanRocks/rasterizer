@@ -62,7 +62,7 @@ Point Graphics::clip(const Point& inView, const Point& outOfView, int windowWidt
 		midpoint = Point::getMidpoint(inViewMut, outOfViewMut);
 		if (midpoint == inViewMut || midpoint == outOfViewMut)
 			break;
-		else if (Graphics::isInView(midpoint, windowWidth, windowHeight, R))
+		else if (Graphics::isInView(midpoint))
 			inViewMut = midpoint;
 		else
 			outOfViewMut = midpoint;
@@ -72,16 +72,14 @@ Point Graphics::clip(const Point& inView, const Point& outOfView, int windowWidt
 	return inViewMut;
 }
 
-bool Graphics::isInView(const Point& p, int windowWidth, int windowHeight, int R) {
-  if (p.z < 0) return false;
-  Point q = Graphics::project(p, R);
-  return (abs(q.x) <= windowWidth && abs(q.y) <= windowHeight);
+bool Graphics::isInView(const Point& p) {
+	return p.z >= 0;
 }
 
 // true if all four of the polygon's points are in view
-bool Graphics::isInView(const Polygon& polygon, int windowWidth, int windowHeight, int R) {
+bool Graphics::isInView(const Polygon& polygon) {
 	for (int i = 0; i < polygon.vertices.size(); ++i) {
-		if (!Graphics::isInView(polygon.vertices[i], windowWidth, windowHeight, R))
+		if (!Graphics::isInView(polygon.vertices[i]));
 			return false;
 	}
 	return true;
