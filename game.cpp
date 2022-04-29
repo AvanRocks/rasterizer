@@ -402,7 +402,7 @@ int main() {
       transformedPolygons[i] = Matrix::rotateX(transformedPolygons[i], angleY);
     }
 
-    // Clip points to boundary of the viewing frustum
+    // Clip points to be above the x-y plane (positive z-coordinate)
     for (int i = 0; i < numPolygons; ++i) {
 			Polygon currPoly = transformedPolygons[i];
 
