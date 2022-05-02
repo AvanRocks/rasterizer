@@ -2,27 +2,27 @@
 #define GRAPHICS_H
 
 #include "Vector.h"
+#include "Point.h"
 
 #include <vector>
 
-class Point;
 class Polygon;
 
 class Graphics {
 private:
   // Velocity vectors in pixels per second
-  Vector X_VEL, Y_VEL, Z_VEL;
+  static Vector X_VEL, Y_VEL, Z_VEL;
 
   int FPS;
 
   // z-coordinate of the center of projection
-  const int R = -800; 
+  static Point R;
 
   std::vector<Polygon> polygons;
   std::vector<Polygon> rotatedPolygons;
 
-  static Point project(const Point& p, int r);
-  static Polygon project(const Polygon& p, int r);
+  static Point project(const Point& p);
+  static Polygon project(const Polygon& p);
   static bool isInView(const Point& p);
   static bool isInView(const Polygon& poly);
   static Point intersectXY(const Point& p, const Point& q);

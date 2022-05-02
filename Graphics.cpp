@@ -10,7 +10,12 @@
 
 using namespace std;
 
-Graphics::Graphics(vector<Polygon> polygons, int FPS) : X_VEL(500,0,0), Y_VEL(0,500,0), Z_VEL(0,0,500) {
+Point Graphics::R(0,0,-800);
+Vector Graphics::X_VEL(500,0,0);
+Vector Graphics::Y_VEL(0,500,0);
+Vector Graphics::Z_VEL(0,0,500);
+
+Graphics::Graphics(vector<Polygon> polygons, int FPS) {
 	this->polygons = polygons;
 	this->FPS = FPS;
 }
@@ -32,19 +37,18 @@ Point Graphics::intersectXY(const Point& p, const Point& q) {
 	return ret;
 }
 
-Point Graphics::project(const Point& p, int r) {
+Point Graphics::project(const Point& p) {
 	if (p.z < 0) {
     fprintf(stderr, "Error: Trying to project an invalid point.\n");
 	}
 
-  const double SCALING_FACTOR = (double) r / ( r - p.z );
-  return Point( p.x * SCALING_FACTOR, p.y * SCALING_FACTOR, 0);
+	return Graphics::intersectXY(R, p);
 }
 
-Polygon Graphics::project(const Polygon& polygon, int r) {
+Polygon Graphics::project(const Polygon& polygon) {
 	vector<Point> newVertices;
 	for (Point p : polygon.vertices) {
-		newVertices.push_back(Graphics::project(p, r));
+		newVertices.push_back(Graphics::project(p));
 	}
 
 	return Polygon(newVertices);
@@ -111,7 +115,7 @@ void Graphics::render(std::vector<Polygon>& screenPolygons) {
 
 	// Project the polygons onto the x-y plane
 	for (int i = 0; i < screenPolygons.size(); ++i)
-		screenPolygons[i] = Graphics::project(screenPolygons[i], R);
+		screenPolygons[i] = Graphics::project(screenPolygons[i]);
 }
 
 // Clip points to be above the x-y plane (positive z-coordinate)
