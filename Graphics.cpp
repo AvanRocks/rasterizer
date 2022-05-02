@@ -50,34 +50,6 @@ Polygon Graphics::project(const Polygon& polygon, int r) {
 	return Polygon(newVertices);
 }
 
-// Find the point of intersection of line connecting the two points 
-// inView and outOfView with the viewing frustum.
-// This algorithm is NOT perfect. It can miss the intersection points 
-// in some situations, when the binary search jumps over the viewing frustum.
-// Good enough for now lol.
-Point Graphics::clip(const Point& inView, const Point& outOfView, int windowWidth, int windowHeight, int R) {
-
-	// Define mutable versions of inView and outOfView 
-	// for use in the binary search
-	Point inViewMut = inView;
-	Point outOfViewMut = outOfView;
-
-	Point midpoint;
-
-	while (true) {
-		midpoint = Point::getMidpoint(inViewMut, outOfViewMut);
-		if (midpoint == inViewMut || midpoint == outOfViewMut)
-			break;
-		else if (Graphics::isInView(midpoint))
-			inViewMut = midpoint;
-		else
-			outOfViewMut = midpoint;
-	}
-
-	// Return the point that is certainly in view
-	return inViewMut;
-}
-
 bool Graphics::isInView(const Point& p) {
 	return p.z >= 0;
 }
