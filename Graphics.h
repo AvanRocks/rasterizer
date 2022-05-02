@@ -23,7 +23,6 @@ private:
 
   static Point project(const Point& p, int r);
   static Polygon project(const Polygon& p, int r);
-  static Point clip(const Point& inView, const Point& outOfView, int windowWidth, int windowHeight, int R);
   static bool isInView(const Point& p);
   static bool isInView(const Polygon& poly);
   static Point intersectXY(const Point& p, const Point& q);
