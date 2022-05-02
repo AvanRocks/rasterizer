@@ -10,20 +10,10 @@
 #include <X11/cursorfont.h>
 
 #include "Graphics.h"
-#include "Matrix.h"
 #include "Point.h"
 #include "Polygon.h"
-#include "Vector.h"
 
 using namespace std;
-
-// Velocity vectors in pixels per second
-const Vector X_VEL(500,0,0);
-const Vector Y_VEL(0,500,0);
-const Vector Z_VEL(0,0,500);
-
-// z-coordinate of the center of projection
-const int R = -800; 
 
 const int FPS = 100;
 
@@ -33,8 +23,6 @@ const int MOUSE_SENS_Y = 1500;
 // border margin for warping the pointer
 const int marginSize = 1;
 
-//int numPoints = 4;
-int numPolygons = 2;
 vector<Polygon> polygons = {
 	Polygon(
 		{
@@ -46,11 +34,15 @@ vector<Polygon> polygons = {
 	)
 };
 
+vector<Polygon> screenPolygons(polygons.size());
+
 double angleX = 0, angleY = 0;
 
 int mouseX = -1, mouseY = -1;
 
 int windowWidth, windowHeight;
+
+Graphics g(polygons, FPS);
 
 int main() {
   // Open the server connection
@@ -183,8 +175,9 @@ int main() {
 
 	// Set up polygons
 
+  vector<Polygon> morePolygons;
 	for (int x = -1000; x < 1000; x += 200) {
-		polygons.push_back(
+		morePolygons.push_back(
 				Polygon({
 					Point(x, 1000, -10000),
 					Point(x+50, 1000, -10000),
@@ -193,7 +186,8 @@ int main() {
 					})
 			);
 	}
-	numPolygons = polygons.size();
+
+  g.addPolygons(morePolygons);
 
   // Key pressed states
   bool leftArrowKeyIsPressed = 0;
@@ -362,121 +356,55 @@ int main() {
 
     // Update game state
 
-    // Translate each polygons
-    for (int i = 0; i < numPolygons; ++i) {
-      if (leftArrowKeyIsPressed) {
-        polygons[i] += Matrix::rotateY(X_VEL/FPS, -angleX);
-      }
-      if (rightArrowKeyIsPressed) {
-        polygons[i] -= Matrix::rotateY(X_VEL/FPS, -angleX);
-      }
-      if (upArrowKeyIsPressed) {
-        polygons[i] -= Matrix::rotateX(Matrix::rotateY(Z_VEL/FPS, -angleX), angleY);
-      }
-      if (downArrowKeyIsPressed) {
-        polygons[i] += Matrix::rotateX(Matrix::rotateY(Z_VEL/FPS, -angleX), angleY);
-      }
-      if (spaceIsPressed) {
-        // Here we add because the positive y-axis is downward
-        polygons[i] += Y_VEL/FPS;
-      }
-      if (shiftIsPressed) {
-        // Here we subtract because the positive y-axis is downward
-        polygons[i] -= Y_VEL/FPS;
-      }
+    // Translate each polygon
+    if (leftArrowKeyIsPressed) {
+      g.moveLeft(angleX);
     }
-
-    // Set up polygons to draw
-    Polygon transformedPolygons[numPolygons];
+    if (rightArrowKeyIsPressed) {
+      g.moveRight(angleX);
+    }
+    if (upArrowKeyIsPressed) {
+      g.moveForward(angleX, angleY);
+    }
+    if (downArrowKeyIsPressed) {
+      g.moveBackward(angleX, angleY);
+    }
+    if (spaceIsPressed) {
+      g.moveUp();
+    }
+    if (shiftIsPressed) {
+      g.moveDown();
+    }
 
     // Set up rotation angles
     angleX += (double) -dx / MOUSE_SENS_X;
     angleY += (double) dy / MOUSE_SENS_Y;
 
     // Rotate the polygons
-    for (int i = 0; i < numPolygons; ++i) {
-      // Here, Matrix.rotateY() rotates about the y-axis.
-      // Hence, angleX is passed to rotateY() (up-down view rotation).
-      // Similarly, angleY is passed to rotateX() (left-right view rotation)
-      transformedPolygons[i] = Matrix::rotateY(polygons[i], angleX);
-      transformedPolygons[i] = Matrix::rotateX(transformedPolygons[i], angleY);
-    }
-
-    // Clip points to be above the x-y plane (positive z-coordinate)
-    for (int i = 0; i < numPolygons; ++i) {
-			Polygon currPoly = transformedPolygons[i];
-
-			// If one or more of the vertices are below the x-y plane
-			// clip the polygon to have a positive z-coordinate
-			if (!Graphics::isInView(currPoly)) {
-
-				// All vertices of newPoly will have positive z-coordinate
-				Polygon newPoly;
-
-				// Number of vertices of the current polygon
-				int numVertices = currPoly.vertices.size();
-
-				// Loop over the current polgon's vertices 
-				for (int j = 0; j < numVertices; ++j) {
-					Point currPoint = transformedPolygons[i].vertices[j];
-					Point nextPoint = transformedPolygons[i].vertices[(j+1) % numVertices];
-
-          bool currPointInView = Graphics::isInView(currPoint);
-          bool nextPointInView = Graphics::isInView(nextPoint);
-
-					if (currPointInView) {
-						newPoly.vertices.push_back(currPoint);
-					}
-
-					// If the points lie across the x-y plane
-					if (currPointInView ^ nextPointInView) {
-						Point inView, outOfView;
-						if (currPointInView) {
-							inView = currPoint;
-							outOfView = nextPoint;
-						} else {
-							inView = nextPoint;
-							outOfView = currPoint;
-						}
-
-            Point intersectionPoint = Graphics::clip(inView, outOfView, windowWidth, windowHeight, R);
-
-						// Add the intersectionPoint (which is on the x-y plane) to the new polygon
-						newPoly.vertices.push_back(intersectionPoint);
-
-          }
-				}
-
-				// Replace current polygon with clipped polygon
-				transformedPolygons[i] = newPoly;
-			}
-    }
+    g.turn(angleX, angleY);
 
     // Clear the window
     XClearWindow(display, window);
 
-    // Project the polygons onto the viewing plane
-    for (int i = 0; i < numPolygons; ++i) {
+    // Clip and project the polygons onto the viewing plane
+    g.render(screenPolygons);
 
-      // Project onto x-y plane
-      // - using the new method of projection
-      Polygon projectedPolygon = Graphics::project(transformedPolygons[i], R);
-      // - using the old method of projection
-      //Polygon projectedPolygon = Graphics::old_project(transformedPolygons[i], windowWidth, windowHeight);
+    // Display them on the screen
+    for (int i = 0; i < screenPolygons.size(); ++i) {
 
-			int numVertices = transformedPolygons[i].vertices.size();
+			int numVertices = screenPolygons[i].vertices.size();
 			XPoint xPoints[numVertices];
 
       // Set up the XPoints array (for drawing on screen)
 			for (int j = 0; j < numVertices; ++j) {
 
         // Copy over the coordinates
-				xPoints[j].x = projectedPolygon.vertices[j].x;
-				xPoints[j].y = projectedPolygon.vertices[j].y;
+				xPoints[j].x = screenPolygons[i].vertices[j].x;
+				xPoints[j].y = screenPolygons[i].vertices[j].y;
 
 				// Translate from game coordinates to screen coordinates (for XFillPolygon)
-				xPoints[j].x = xPoints[j].x + windowWidth / 2;
-				xPoints[j].y = xPoints[j].y + windowHeight / 2;
+				xPoints[j].x += windowWidth / 2;
+				xPoints[j].y += windowHeight / 2;
 			}
 
 			// Fill in a polygon connecting each of the points

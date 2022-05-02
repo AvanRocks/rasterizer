@@ -4,6 +4,8 @@ Vector::Vector() : Point() {}
 
 Vector::Vector(double x, double y, double z) : x(x), y(y), z(z) {}
 
+Vector::Vector(const Point& p, const Point& q) : Vector(q.x - p.x, q.y - p.y, q.z - p.z) {}
+
 Vector& Vector::operator+=(const Vector &rhs) {
 	x += rhs.x;
 	y += rhs.y;
@@ -24,7 +26,7 @@ Vector& Vector::operator*=(const double& scalar) {
 	return *this;
 }
 
-Vector operator*(Vector lhs, const double& scalar) {
+Vector operator*(const double& scalar, Vector lhs) {
 	return lhs *= scalar;
 }
 
