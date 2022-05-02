@@ -24,6 +24,14 @@ void Graphics::addPolygons(std::vector<Polygon> newPolygons) {
 	}
 }
 
+Point Graphics::intersectXY(const Point& p, const Point& q) {
+	double t = (double) p.z / (p.z - q.z);
+	Vector pq(p,q);
+	Point ret = p + t * pq;
+	ret.z = 0;
+	return ret;
+}
+
 Point Graphics::project(const Point& p, int r) {
 	if (p.z < 0) {
     fprintf(stderr, "Error: Trying to project an invalid point.\n");
@@ -174,12 +182,4 @@ void Graphics::clipToView(vector<Polygon> &polygons) {
 			polygons[i] = newPoly;
 		}
 	}
-}
-
-Point Graphics::intersectXY(const Point& p, const Point& q) {
-	double t = (double) p.z / (p.z - q.z);
-	Vector pq(p,q);
-	Point ret = p + t * pq;
-	ret.z = 0;
-	return ret;
 }
