@@ -1,7 +1,7 @@
-# 3d-game-thing
-3D game implemented from scratch
+# rasterizer
+My attempt at making a rasterizer from scratch.
 
-Don't use Xlib, trust me.
+Don't use Xlib, trust me. 😭
 
 ## Compile
 
