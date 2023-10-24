@@ -1,5 +1,5 @@
 # rasterizer
-My attempt at making a rasterizer from scratch.
+My attempt at making a real-time interactive rasterizer from scratch.
 
 Don't use Xlib, trust me. 😭
 
